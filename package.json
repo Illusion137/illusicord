@@ -1,0 +1,30 @@
+{
+    "name": "illusi-discord",
+    "version": "1.0.0",
+    "main": "index.ts",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "dev": "tsx watch src/bot.ts",
+        "start": "node dist/bot.js",
+        "build": "tsup src/bot.ts --minify"
+    },
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "dependencies": {
+        "@discordjs/opus": "^0.9.0",
+        "@discordjs/voice": "^0.17.0",
+        "discord-music-player": "^9.1.1",
+        "discord.js": "^14.16.3",
+        "dotenv": "^16.4.5",
+        "isomorphic-unfetch": "^4.0.2",
+        "sha1-uint8array": "^0.10.7",
+        "spotify-url-info": "^3.2.17",
+        "vm-browserify": "^1.1.2"
+    },
+    "devDependencies": {
+        "tsup": "^8.3.0",
+        "tsx": "^4.19.1",
+        "typescript": "^5.6.3"
+    }
+}
