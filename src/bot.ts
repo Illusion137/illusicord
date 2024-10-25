@@ -15,9 +15,15 @@ const player = new Player(client, {
 client.player = player;
 
 // Init the event listener only once (at the top of your code).
+let channel_id = "";
+async function send_msg(){
+    const channel = client.channels.cache.get(channel_id)!;
+    Discord.TextChannel
+}
+
 client.player
     // Emitted when channel was empty.
-    .on('channelEmpty', (queue) =>
+    .on('channelEmpty', (queue) => 
         console.log(`Everyone left the Voice Channel, queue ended.`))
     // Emitted when a song was added to the queue.
     .on('songAdd', (queue, song) =>
@@ -59,20 +65,31 @@ client.on("ready", () => {
 const settings_prefix = "!";
 
 client.on('messageCreate', async (message) => {
-    console.log("msg: " ,message.content);
     const args = message.content.slice(settings_prefix.length).trim().split(/ +/g);
     const command = args.shift();
     let guild_queue = client.player.get_queue(message.guild!.id)!;
 
     if (command === 'play') {
-        let queue = client.player.create_queue(message.guild!.id);
-        await queue.join(message.member!.voice.channel!).catch(err => { console.log(err); });
-        let song = await queue.play(args.join(' ')).catch(err => { console.log(err); if (!guild_queue) queue.stop(); });
+        if(client.player.has_queue(message.guild!.id)){
+            let queue = client.player.get_queue(message.guild!.id)!;
+            let song = await queue.play(args.join(' ')).catch(err => { console.log(err); if (!guild_queue) queue.stop(); });
+        }
+        else {
+            let queue = client.player.create_queue(message.guild!.id);
+            await queue.join(message.member!.voice.channel!).catch(err => { console.log(err); });
+            let song = await queue.play(args.join(' ')).catch(err => { console.log(err); if (!guild_queue) queue.stop(); });
+        }
     }
     if (command === 'lafou') {
-        let queue = client.player.create_queue(message.guild!.id);
-        await queue.join(message.member!.voice.channel!).catch(err => { console.log(err); });
-        let song = await queue.play_lafou(args.join(' ')).catch(err => { console.log(err); if (!guild_queue) queue.stop(); });
+        if(client.player.has_queue(message.guild!.id)){
+            let queue = client.player.get_queue(message.guild!.id)!;
+            let song = await queue.play(args.join(' '), {"type": "SoundCloud"}).catch(err => { console.log(err); if (!guild_queue) queue.stop(); });
+        }
+        else {
+            let queue = client.player.create_queue(message.guild!.id);
+            await queue.join(message.member!.voice.channel!).catch(err => { console.log(err); });
+            let song = await queue.play(args.join(' '), {"type": "SoundCloud"}).catch(err => { console.log(err); if (!guild_queue) queue.stop(); });
+        }
     }
 
     // if (command === 'playlist') {
@@ -80,21 +97,21 @@ client.on('messageCreate', async (message) => {
     //     await queue.join(message.member!.voice.channel!);
     //     let song = await queue.playlist(args.join(' ')).catch(err => { console.log(err); if (!guildQueue) queue.stop(); });
     // }
-    if (command === 'skip') { guild_queue.skip(); }
-    if (command === 'stop') { guild_queue.stop(); }
-    if (command === 'removeLoop') { guild_queue.setRepeatMode(RepeatMode.DISABLED); } // or 0 instead of RepeatMode.DISABLED
-    if (command === 'toggleLoop') { guild_queue.setRepeatMode(RepeatMode.SONG); } // or 1 instead of RepeatMode.SONG
-    if (command === 'toggleQueueLoop') { guild_queue.setRepeatMode(RepeatMode.QUEUE); } // or 2 instead of RepeatMode.QUEUE
-    if (command === 'setVolume') { guild_queue.setVolume(parseInt(args[0])); }
-    if (command === 'seek') { guild_queue.seek(parseInt(args[0]) * 1000); }
-    if (command === 'clearQueue') { guild_queue.clearQueue(); }
-    if (command === 'shuffle') { guild_queue.shuffle(); }
+    if (command === 'skip') { guild_queue?.skip(); }
+    if (command === 'stop') { guild_queue?.stop(); }
+    if (command === 'removeLoop') { guild_queue?.setRepeatMode(RepeatMode.DISABLED); } // or 0 instead of RepeatMode.DISABLED
+    if (command === 'toggleLoop') { guild_queue?.setRepeatMode(RepeatMode.SONG); } // or 1 instead of RepeatMode.SONG
+    if (command === 'toggleQueueLoop') { guild_queue?.setRepeatMode(RepeatMode.QUEUE); } // or 2 instead of RepeatMode.QUEUE
+    if (command === 'setVolume') { guild_queue?.setVolume(parseInt(args[0])); }
+    if (command === 'seek') { guild_queue?.seek(parseInt(args[0]) * 1000); }
+    if (command === 'clearQueue') { guild_queue?.clearQueue(); }
+    if (command === 'shuffle') { guild_queue?.shuffle(); }
     if (command === 'getQueue') { console.log(guild_queue); }
     if (command === 'getVolume') { console.log(guild_queue.volume); }
     if (command === 'nowPlaying') { console.log(`Now playing: ${guild_queue.nowPlaying}`); }
-    if (command === 'pause') { guild_queue.setPaused(true); }
-    if (command === 'resume') { guild_queue.setPaused(false); }
-    if (command === 'remove') { guild_queue.remove(parseInt(args[0])); }
+    if (command === 'pause') { guild_queue?.setPaused(true); }
+    if (command === 'resume') { guild_queue?.setPaused(false); }
+    if (command === 'remove') { guild_queue?.remove(parseInt(args[0])); }
     if (command === 'createProgressBar') { const ProgressBar = guild_queue.createProgressBar({}); console.log(ProgressBar.prettier); }
     if (command === 'move') {} // guild_queue.move(parseInt(args[0]), parseInt(args[1]));
 })

@@ -5,7 +5,9 @@ import { Queue } from "./Queue";
 import { User } from "discord.js";
 import { Utils } from "../utils/Utils";
 import { Player } from "../Player";
+import { MusicServiceType } from "../../lib-origin/Illusive/src/types";
 export class Song {
+    type?: MusicServiceType
     player: Player;
     queue: Queue;
     name: string;
@@ -90,6 +92,7 @@ export class Song {
          * @type {any}
          */
         this.player = (<any>queue).player;
+        this.type = raw.type;
         this.queue = queue;
         this.name = raw.name;
         this.author = raw.author;

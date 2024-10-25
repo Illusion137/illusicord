@@ -3,6 +3,7 @@ import { User } from "discord.js";
 import { Song } from "../managers/Song";
 import { Queue } from "../managers/Queue";
 import { Playlist } from "../managers/Playlist";
+import { MusicServiceType } from "../../lib-origin/Illusive/src/types";
 // import { Song, Queue, Playlist } from "../Player";
 /**
  * Player options
@@ -130,6 +131,7 @@ export interface RawSong {
     duration: string;
     isLive: boolean;
     seekTime?: number;
+    type?: MusicServiceType;
 }
 /**
  * Raw Playlist object

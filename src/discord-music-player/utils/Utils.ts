@@ -77,11 +77,11 @@ export class Utils {
                 return new Song({
                     name: yitem.title,
                     url: yitem.url,
-                    duration: yitem.duration,
-                    author: yitem.author?.name,
+                    duration: yitem.duration!,
+                    author: yitem.author?.name!,
                     isLive: yitem.isLive,
-                    thumbnail: yitem.bestThumbnail.url,
-                }, Queue, SOptions.requestedBy);
+                    thumbnail: yitem.bestThumbnail.url!,
+                }, Queue, SOptions.requestedBy!);
             }).filter(I => I) as Song[];
             return songs;
         }
@@ -135,9 +135,9 @@ export class Utils {
                 duration: this.ms_to_time(((<youtubei_1.Video>VideoResult).duration ?? 0) * 1000),
                 author: VideoResult.channel.name,
                 isLive: VideoResult.isLiveContent,
-                thumbnail: VideoResult.thumbnails.best,
-                seekTime: SOptions.timecode && VideoTimecode ? Number(VideoTimecode) * 1000 : null,
-            }, Queue, SOptions.requestedBy);
+                thumbnail: VideoResult.thumbnails.best!,
+                seekTime: SOptions.timecode && VideoTimecode ? Number(VideoTimecode) * 1000 : null!,
+            }, Queue, SOptions.requestedBy!);
         }
         return null;
     }
@@ -196,7 +196,7 @@ export class Utils {
                 throw DMPErrors.INVALID_PLAYLIST;
             if ((<any>SOptions).shuffle)
                 (<any>AppleResult).songs = this.shuffle(AppleResult.songs);
-            return new Playlist(AppleResult, Queue, SOptions.requestedBy);
+            return new Playlist(AppleResult, Queue, SOptions.requestedBy!);
         }
         else if (SpotifyPlaylistLink) {
             let SpotifyResultData = await getData(Search, {}).catch(() => null);
@@ -227,7 +227,7 @@ export class Utils {
                 throw DMPErrors.INVALID_PLAYLIST;
             if ((<any>SOptions).shuffle)
                 (<any>SpotifyResult).songs = this.shuffle(SpotifyResult.songs);
-            return new Playlist(SpotifyResult, Queue, SOptions.requestedBy);
+            return new Playlist(SpotifyResult, Queue, SOptions.requestedBy!);
         }
         else if (YouTubePlaylistLink) {
             let PlaylistID = this.parse_playlist(Search);
@@ -257,10 +257,10 @@ export class Utils {
                     name: video.title,
                     url: `https://youtube.com/watch?v=${video.id}`,
                     duration: this.ms_to_time((video.duration ?? 0) * 1000),
-                    author: video.channel?.name,
+                    author: video.channel?.name!,
                     isLive: video.isLive,
-                    thumbnail: video.thumbnails.best,
-                }, Queue, SOptions.requestedBy);
+                    thumbnail: video.thumbnails.best!,
+                }, Queue, SOptions.requestedBy!);
                 song.data = (<any>SOptions).data;
                 return song;
             })

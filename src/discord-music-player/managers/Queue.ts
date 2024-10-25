@@ -5,7 +5,7 @@ import * as voice_1 from "@discordjs/voice";
 import * as __1 from "../types/types";
 import * as ytdl from '../../lib-origin/origin/src/youtube_dl/index';
 // import { PlayerOptions, ProgressBar, ProgressBarOptions, RepeatMode, Song } from "discord-music-player";
-import { Guild, GuildChannelResolvable } from "discord.js";
+import { Faces, Guild, GuildChannelResolvable } from "discord.js";
 import { Utils } from "../utils/Utils";
 import { DMPErrors, DMPError } from "./DMPError";
 import { Playlist } from "./Playlist";
@@ -13,9 +13,11 @@ import { Player } from "../Player";
 import { Song } from "./Song";
 import { ProgressBar } from "./ProgressBar";
 import { urlid } from "../../lib-origin/origin/src/utils/util";
-import { SoundCloud, SoundCloudDL } from "../../lib-origin/origin/src";
+import { SoundCloud, SoundCloudDL, YouTube } from "../../lib-origin/origin/src";
 import { CookieJar } from "../../lib-origin/origin/src/utils/cookie_util";
 import { dotenv } from "../../config";
+import { Illusive } from "../../lib-origin/Illusive/src/illusive";
+import { MusicServiceType, Track } from "../../lib-origin/Illusive/src/types";
 export class Queue<T = unknown> {
     player: Player;
     guild: Guild;
@@ -186,16 +188,16 @@ export class Queue<T = unknown> {
                     this.songs.unshift(oldSong!);
                     this.songs[0]._setFirst(false);
                     this.player.emit('songChanged', this, this.songs[0], oldSong);
-                    return this.play(this.songs[0], <any>{ immediate: true });
+                    return this.play(this.songs[0], { immediate: true });
                 }
                 else if (this.repeatMode === __1.RepeatMode.QUEUE) {
                     this.songs.push(oldSong!);
                     this.songs[this.songs.length - 1]._setFirst(false);
                     this.player.emit('songChanged', this, this.songs[0], oldSong);
-                    return this.play(this.songs[0], <any>{ immediate: true });
+                    return this.play(this.songs[0], { immediate: true });
                 }
                 this.player.emit('songChanged', this, this.songs[0], oldSong);
-                return this.play(this.songs[0], <any>{ immediate: true });
+                return this.play(this.songs[0], { immediate: true });
             }
         })
             .on('error', (err) => this.player.emit('error', err.message, this));
@@ -204,67 +206,83 @@ export class Queue<T = unknown> {
     /**
      * Plays or Queues a song (in a VoiceChannel)
      * @param {Song | string} search
-     * @param {PlayOptions} [options=DefaultPlayOptions]
+     * @param {PlayOptions} [opts=DefaultPlayOptions]
      * @returns {Promise<Song>}
      */
-    async play(search: Song|string, options: any = __1.DefaultPlayOptions) {
+    async play(search: Song|string, opts: {
+        immediate?: boolean,
+        seek?: number,
+        index?: number,
+        type?: MusicServiceType
+    } = {type: "YouTube"}) {
         if (this.destroyed)
             throw new DMPError(DMPErrors.QUEUE_DESTROYED);
         if (!this.connection)
             throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
-        options = Object.assign({}, __1.DefaultPlayOptions, options);
-        let { data } = <any>options;
-        delete options.data;
-        let song = await Utils.best(search, options, <any>this)
-            .catch(error => {
-            throw new DMPError(error);
-        });
-        if (!(<any>options).immediate)
-            song.data = data;
-        let songLength = this.songs.length;
-        if (!options?.immediate && songLength !== 0) {
-            if (options?.index >= 0 && ++options.index <= songLength)
-                this.songs.splice(options.index, 0, song);
+        if(opts.type === undefined) opts.type = "YouTube";
+
+        let song;
+        if(typeof search === "string"){
+            const illusive_search = await Illusive.music_service.get(opts.type)!.search!(search); 
+            if("error" in illusive_search) throw illusive_search;
+            const illusive_song = illusive_search.tracks[0];
+            const illusive_id = ((track: Track) => {
+                if(track.youtube_id !== undefined) return track.youtube_id;
+                if(track.soundcloud_permalink !== undefined) return track.soundcloud_permalink;
+                return "";
+            })(illusive_song);
+            song = new Song({
+                name: illusive_song.title,
+                thumbnail: (<{"uri": string}>await Illusive.get_track_artwork(illusive_song)).uri,
+                url: illusive_id,
+                type: illusive_id.includes("soundcloud") ? "SoundCloud" : "YouTube",
+                author: illusive_song.artists[0].name,
+                duration: String(illusive_song.duration),
+                isLive: false
+            }, this, <any>{});
+        }
+        else song = search;
+
+        const queue_size = this.songs.length;
+        if (!opts?.immediate && queue_size !== 0 && opts.index) {
+            if (opts.index >= 0 && ++opts.index <= queue_size)
+                this.songs.splice(opts.index, 0, song);
             else
                 this.songs.push(song);
             this.player.emit('songAdd', this, song);
             return song;
         }
-        else if (!options?.immediate) {
+        else if (!opts?.immediate) {                                   
             song._setFirst();
-            if (options?.index >= 0 && ++options.index <= songLength)
-                this.songs.splice(options.index, 0, song);
+            if (opts.index && opts?.index >= 0 && ++opts.index <= queue_size)
+                this.songs.splice(opts.index, 0, song);
             else
                 this.songs.push(song);
             this.player.emit('songAdd', this, song);
         }
-        else if (options.seek)
-            this.songs[0].seekTime = options.seek;
-        let quality = this.options.quality;
+        else if (opts.seek)
+            this.songs[0].seekTime = opts.seek;
         song = this.songs[0];
         if (song.seekTime)
-            options.seek = song.seekTime;
-        let stream = await ytdl.YouTubeDL.ytdl(urlid(song.url, "youtube.com/", "watch?v="), {
-            // requestOptions: this.player.options.ytdlRequestOptions ?? {},
-            // opusEncoded: false,
-            // seek: options.seek ? options.seek / 1000 : 0,
-            // fmt: 's16le',
-            // encoderArgs: [],
-            quality: "18",
-            // highWaterMark: 1 << 25,
-            // filter: 'audioonly'
-        })
-        const resource = this.connection.createAudioStream(stream.url, {
-            metadata: song,
-            inputType: voice_1.StreamType.Raw
-        });
-        setTimeout((_: any) => {
-            this.connection!.playAudioStream(resource)
-                .then(__ => {
-                this.setVolume(this.options.volume!);
+            opts.seek = song.seekTime;
+
+        if(opts?.immediate === true || queue_size === 0){
+            const stream = await Illusive.music_service.get(song.type!)!.download_from_id!(song.url, "18");
+            if("error" in stream) throw stream;
+        
+            const resource = this.connection.createAudioStream(stream.url, {
+                metadata: song,
+                inputType: voice_1.StreamType.Raw
             });
-        });
-        return song;
+            setTimeout((_: any) => {
+                this.connection!.playAudioStream(resource)
+                    .then(__ => {
+                    this.setVolume(this.options.volume!);
+                });
+            });
+            return song;
+        }
+
     }
 
     soundcloud_jar = CookieJar.fromString(dotenv.SOUNDCLOUD_COOKIES);
@@ -317,7 +335,7 @@ export class Queue<T = unknown> {
         this.player.emit('playlistAdd', this, playlist);
         if (songLength === 0) {
             playlist.songs[0]._setFirst();
-            await this.play(playlist.songs[0], <any>{ immediate: true });
+            await this.play(playlist.songs[0], { immediate: true });
         }
         return playlist;
     }
@@ -337,7 +355,7 @@ export class Queue<T = unknown> {
             time = 0;
         if (time >= this.nowPlaying.milliseconds)
             return this.skip();
-        await this.play(<any>this.nowPlaying, <any>{
+        await this.play(<any>this.nowPlaying, {
             immediate: true,
             seek: time
         });
