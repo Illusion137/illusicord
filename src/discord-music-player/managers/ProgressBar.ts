@@ -76,4 +76,3 @@ export class ProgressBar {
         return this.options.time ? this.prettier : `[${this.bar}]`;
     }
 }
-exports.ProgressBar = ProgressBar;

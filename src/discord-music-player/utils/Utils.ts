@@ -241,7 +241,7 @@ export class Utils {
             let YouTubeResultData = await YouTube.getPlaylist(PlaylistID);
             if (!YouTubeResultData || Object.keys(YouTubeResultData).length === 0)
                 throw DMPErrors.INVALID_PLAYLIST;
-            let YouTubeResult = {
+            let YouTubeResult: __1.RawPlaylist = {
                 name: YouTubeResultData.title,
                 author: YouTubeResultData instanceof youtubei_1.Playlist ? YouTubeResultData.channel?.name ?? 'YouTube Mix' : 'YouTube Mix',
                 url: Search,
@@ -269,7 +269,7 @@ export class Utils {
                 throw DMPErrors.INVALID_PLAYLIST;
             if ((<any>SOptions).shuffle)
                 (<any>YouTubeResult).songs = this.shuffle(YouTubeResult.songs);
-            return new Playlist(YouTubeResult, Queue, SOptions.requestedBy);
+            return new Playlist(YouTubeResult, Queue, SOptions.requestedBy!);
         }
         throw DMPErrors.INVALID_PLAYLIST;
     }
@@ -313,7 +313,6 @@ export class Utils {
             return type === discord_js_1.ChannelType.GuildStageVoice;
     }
 }
-exports.Utils = Utils;
 Utils.regex_list = {
     youtube_video: /^((?:https?:)\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))((?!channel)(?!user)\/(?:[\w\-]+\?v=|embed\/|v\/)?)((?!channel)(?!user)[\w\-]+)(((.*(\?|\&)t=(\d+))(\D?|\S+?))|\D?|\S+?)$/,
     youtube_video_id: /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/,

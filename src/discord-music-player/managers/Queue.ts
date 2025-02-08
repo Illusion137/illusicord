@@ -233,11 +233,11 @@ export class Queue<T = unknown> {
             })(illusive_song);
             song = new Song({
                 name: illusive_song.title,
-                thumbnail: (<{"uri": string}>await Illusive.get_track_artwork(illusive_song)).uri,
+                thumbnail: "",
                 url: illusive_id,
                 type: illusive_id.includes("soundcloud") ? "SoundCloud" : "YouTube",
                 author: illusive_song.artists[0].name,
-                duration: String(illusive_song.duration),
+                duration: Utils.ms_to_time(illusive_song.duration * 1000),
                 isLive: false
             }, this, <any>{});
         }
@@ -282,35 +282,9 @@ export class Queue<T = unknown> {
             });
             return song;
         }
-
-    }
-
-    soundcloud_jar = CookieJar.fromString(dotenv.SOUNDCLOUD_COOKIES);
-    async play_lafou(search: string){
-        if (this.destroyed)
-            throw new DMPError(DMPErrors.QUEUE_DESTROYED);
-        if (!this.connection)
-            throw new DMPError(DMPErrors.NO_VOICE_CONNECTION);
-
-        const sc_search = await SoundCloud.search("TRACKS", {"query": search});
-        if("error" in sc_search) throw sc_search;
-        const song = sc_search.data.collection[0];
-
-        const stream = await SoundCloudDL.get_download_info_from_permalink(song.permalink_url);
-        if(typeof stream === "object") throw stream; 
-
-        const resource = this.connection.createAudioStream(stream, {
-            metadata: song,
-            inputType: voice_1.StreamType.Raw
-        });
-        setTimeout((_: any) => {
-            this.connection!.playAudioStream(resource)
-                .then(__ => {
-                this.setVolume(this.options.volume!);
-            });
-        });
         return song;
     }
+
     /**
      * Plays or Queues a playlist (in a VoiceChannel)
      * @param {Playlist | string} search
@@ -499,4 +473,3 @@ export class Queue<T = unknown> {
         this.player.delete_queue(this.guild.id);
     }
 }
-exports.Queue = Queue;

@@ -135,4 +135,3 @@ export class Song {
         return `${this.name} | ${this.author}`;
     }
 }
-exports.Song = Song;

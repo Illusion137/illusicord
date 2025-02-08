@@ -1,4 +1,3 @@
-Object.defineProperty(exports, "__esModule", { value: true });
 export enum DMPErrors {
     UNKNOWN = "Unknown",
     QUEUE_DESTROYED = "QueueDestroyed",
@@ -51,7 +50,6 @@ export class DMPError extends Error {
         return this.message;
     }
 }
-exports.DMPError = DMPError;
 /**
  * The DMPErrors short messages.
  * Following modes exists:
@@ -108,7 +106,7 @@ exports.DMPError = DMPError;
  * - InvalidPlaylist: `There was no Playlist found with that link.`
  * @typedef {DMPErrorMessages}
  */
-exports.DMPErrorMessages = {
+export const DMPErrorMessages = {
     Unknown: 'There was an Unknown Error.',
     QueueDestroyed: 'The Queue was destroyed.',
     NothingPlaying: 'There is currently no Song playing in the Voice Channel.',

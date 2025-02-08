@@ -95,4 +95,3 @@ export class Player<OptionsData = any> extends events_1.EventEmitter {
         }, timeout);
     }
 }
-exports.Player = Player;

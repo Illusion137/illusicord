@@ -7,7 +7,7 @@ export const dotenv = <{
     CLIENT_SECRET: string,
     TOKEN: string,
     SOUNDCLOUD_COOKIES: string
+    YOUTUBE_COOKIES: string
 }> process.env;
 
 export const invite_link = `https://discord.com/api/oauth2/authorize?client_id=${dotenv.CLIENT_ID}&permissions=8&scope=bot%20applications.commands` as const;
-//https://discord.com/api/oauth2/authorize?client_id=1035002876218589305&permissions=8&scope=bot%20applications.commands

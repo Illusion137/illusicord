@@ -66,4 +66,3 @@ export class Playlist {
         return `${this.name} | ${this.author}`;
     }
 }
-exports.Playlist = Playlist;
