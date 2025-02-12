@@ -18,6 +18,7 @@ import { CookieJar } from "../../lib-origin/origin/src/utils/cookie_util";
 import { dotenv } from "../../config";
 import { Illusive } from "../../lib-origin/Illusive/src/illusive";
 import { MusicServiceType, Track } from "../../lib-origin/Illusive/src/types";
+import { MEDIA } from "../../media";
 export class Queue<T = unknown> {
     player: Player;
     guild: Guild;
@@ -209,7 +210,7 @@ export class Queue<T = unknown> {
      * @param {PlayOptions} [opts=DefaultPlayOptions]
      * @returns {Promise<Song>}
      */
-    async play(search: Song|string, opts: {
+    async play(search: Song|string|number, opts: {
         immediate?: boolean,
         seek?: number,
         index?: number,
@@ -222,7 +223,18 @@ export class Queue<T = unknown> {
         if(opts.type === undefined) opts.type = "YouTube";
 
         let song;
-        if(typeof search === "string"){
+        if(typeof search === "number"){
+            song = new Song({
+                name: MEDIA[search].title,
+                thumbnail: "",
+                url: `media/${MEDIA[search].title}`,
+                type: "API",
+                author: MEDIA[search].artists[0].name,
+                duration: Utils.ms_to_time(MEDIA[search].duration * 1000),
+                isLive: false
+            }, this, <any>{});
+        }
+        else if(typeof search === "string"){
             const illusive_search = await Illusive.music_service.get(opts.type)!.search!(search); 
             if("error" in illusive_search) throw illusive_search;
             const illusive_song = illusive_search.tracks[0];
@@ -267,7 +279,7 @@ export class Queue<T = unknown> {
             opts.seek = song.seekTime;
 
         if(opts?.immediate === true || queue_size === 0){
-            const stream = await Illusive.music_service.get(song.type!)!.download_from_id!(song.url, "18");
+            const stream = song.type === "API" ? {url: song.url} : await Illusive.music_service.get(song.type!)!.download_from_id!(song.url, "18");
             if("error" in stream) throw stream;
         
             const resource = this.connection.createAudioStream(stream.url, {

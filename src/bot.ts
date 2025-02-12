@@ -7,6 +7,8 @@ import { CookieJar } from "./lib-origin/origin/src/utils/cookie_util";
 import { Queue } from "./discord-music-player/managers/Queue";
 import { Song } from "./discord-music-player/managers/Song";
 import { is_empty } from "./lib-origin/origin/src/utils/util";
+import { MEDIA } from "./media";
+import { Track } from "./lib-origin/Illusive/src/types";
 
 // Prefs.prefs.youtube_cookie_jar.current_value = CookieJar.fromString(dotenv.YOUTUBE_COOKIES);
 // Prefs.prefs.use_cookies_on_download.current_value = true;
@@ -24,6 +26,9 @@ client.player = player;
 
 function songToString(song: Song){
     return `\`${(song?.name ?? "")} | ${song?.author ?? ""} | ${song?.duration ?? ""}\``;
+}
+function trackToString(track: Track){
+    return `\`${(track?.title ?? "")} | ${track?.artists[0].name ?? ""} | ${track?.duration ?? ""}\``;
 }
 let channel_id: string = "";
 function sendMessage(content: string){
@@ -56,11 +61,20 @@ client.on('messageCreate', async (message) => {
 
         channel_id = message.channelId;
     
-        if (command === 'play' || command === 'lafou' || command === 'music') {
+        if (command === 'play' || command === 'lafou' || command === 'music' || command === 'local') {
             const play_opts: Parameters<Queue<any>['play']>[1] =  {'type': command === 'play' ? "YouTube" : command === 'lafou' ? "SoundCloud" : "YouTube Music"};
             const has_queue = client.player.has_queue(message.guild!.id);
             const queue = has_queue ? client.player.get_queue(message.guild!.id)! : client.player.create_queue(message.guild!.id);
             if(!has_queue) await queue.join(message.member!.voice.channel!).catch(err => console.log("[ERROR]: " + err));
+            if(command === 'local'){
+                for(const song_index_str of args.join(' ').split(' && ')){
+                    try {
+                        const song_index = parseInt(song_index_str) - 1;
+                        const song = await queue.play(song_index, play_opts).catch(err => console.log(err));
+                    } catch (error) {}
+                }
+                return;
+            }
             for(const song_item of args.join(' ').split(' && ')){
                 const song = await queue.play(song_item, play_opts).catch(err => console.log(err));
             }
@@ -85,6 +99,14 @@ client.on('messageCreate', async (message) => {
                 const song = guild_queue.songs[i];
                 sendMessage(`> Queued (${i + 1}) -> ` + songToString(song)); 
             }
+        }
+        if (command === 'media') {
+            let str = '';
+            for(let i = 0; i < MEDIA.length; i++){
+                const track = MEDIA[i];
+                str += `> Media (${i + 1}) -> ` + trackToString(track) + '\n';
+            }
+            sendMessage(str); 
         }
         if (command === 'getVolume') { console.log(guild_queue.volume); }
         if (command === 'nowPlaying') { console.log(`Now playing: ${guild_queue.nowPlaying}`); }

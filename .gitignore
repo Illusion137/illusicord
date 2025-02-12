@@ -3,6 +3,6 @@
 node_modules
 lib-origin
 dist
-
+media
 .vscode
 cmds.cmd
