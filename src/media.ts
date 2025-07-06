@@ -40,5 +40,10 @@ export const MEDIA = [
     make_media("Shinythnznjd9uyy8jc9ao482tt8jj9izurb1lqdycw-ma.wav"),
     make_media("skunky_gun - final.wav"),
     make_media("SkunkyGun.m4a"),
-    make_media("triple threat done pt1.mp3")
+    make_media("triple threat done pt1.mp3"),
+    make_media("Broly_Timing(feat. Kanesta).m4a"),
+    make_media("Clappin-mhuhwihi77quenz48xd7wk84v38ldu4rmb8i1i.m4a"),
+    make_media("WhereyaAuntie.m4a"),
+    make_media("petethecat.m4a"),
+    make_media("LafouandMorty.m4a")
 ]

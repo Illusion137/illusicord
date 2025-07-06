@@ -12,7 +12,7 @@ import { Playlist } from "./Playlist";
 import { Player } from "../Player";
 import { Song } from "./Song";
 import { ProgressBar } from "./ProgressBar";
-import { urlid } from "../../lib-origin/origin/src/utils/util";
+import { is_empty, urlid } from "../../lib-origin/origin/src/utils/util";
 import { SoundCloud, SoundCloudDL, YouTube } from "../../lib-origin/origin/src";
 import { CookieJar } from "../../lib-origin/origin/src/utils/cookie_util";
 import { dotenv } from "../../config";
@@ -210,7 +210,7 @@ export class Queue<T = unknown> {
      * @param {PlayOptions} [opts=DefaultPlayOptions]
      * @returns {Promise<Song>}
      */
-    async play(search: Song|string|number, opts: {
+    async play(search: Song|string|number|Track, opts: {
         immediate?: boolean,
         seek?: number,
         index?: number,
@@ -248,6 +248,23 @@ export class Queue<T = unknown> {
                 thumbnail: "",
                 url: illusive_id,
                 type: illusive_id.includes("soundcloud") ? "SoundCloud" : "YouTube",
+                author: illusive_song.artists[0].name,
+                duration: Utils.ms_to_time(illusive_song.duration * 1000),
+                isLive: false
+            }, this, <any>{});
+        }
+        else if(typeof search === "object" && !(search instanceof Song)){
+            const illusive_song = search;
+            const illusive_id = ((track: Track) => {
+                if(!is_empty(track.youtube_id)) return track.youtube_id;
+                if(!is_empty(track.soundcloud_permalink)) return track.soundcloud_permalink;
+                return "";
+            })(illusive_song);
+            song = new Song({
+                name: illusive_song.title,
+                thumbnail: "",
+                url: illusive_id!,
+                type: illusive_id!.includes("soundcloud") ? "SoundCloud" : "YouTube",
                 author: illusive_song.artists[0].name,
                 duration: Utils.ms_to_time(illusive_song.duration * 1000),
                 isLive: false

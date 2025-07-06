@@ -8,7 +8,11 @@ import { Queue } from "./discord-music-player/managers/Queue";
 import { Song } from "./discord-music-player/managers/Song";
 import { is_empty } from "./lib-origin/origin/src/utils/util";
 import { MEDIA } from "./media";
-import { Track } from "./lib-origin/Illusive/src/types";
+import { MusicServicePlaylist, Track } from "./lib-origin/Illusive/src/types";
+import { Illusive } from "./lib-origin/Illusive/src/illusive";
+import { Utils } from "./discord-music-player/utils/Utils";
+import { shuffle_array } from "./lib-origin/Illusive/src/illusive_utilts";
+import { play_track_discord_recieve } from "./lib-origin/Illusive/src/discord";
 
 // Prefs.prefs.youtube_cookie_jar.current_value = CookieJar.fromString(dotenv.YOUTUBE_COOKIES);
 // Prefs.prefs.use_cookies_on_download.current_value = true;
@@ -18,6 +22,10 @@ const client: Discord.Client & { player: Player } = <any>new Discord.Client({
 });
 
 const player = new Player(client, {
+    leaveOnEnd: false,
+    timeout: 1000 * 600,
+    deafenOnJoin: true,
+    leaveOnStop: true,
     leaveOnEmpty: false, // This options are optional.
 });
 // You can define the Player as *client.player* to easily access it.
@@ -31,8 +39,12 @@ function trackToString(track: Track){
     return `\`${(track?.title ?? "")} | ${track?.artists[0].name ?? ""} | ${track?.duration ?? ""}\``;
 }
 let channel_id: string = "";
+let disable_messages = false;
 function sendMessage(content: string){
-    if(is_empty(channel_id)) return;
+    console.log(content);
+    if(disable_messages) return;
+    console.log("[MSG]: " + content);
+    if(is_empty(channel_id) || is_empty(content) || typeof content !== "string") return;
     const text_channel: Discord.Channel & {send: (content: string) => void} = client.channels.cache.get(channel_id)! as any;
     text_channel.send(content);
 }
@@ -48,13 +60,19 @@ client.player
     .on('songFirst', (queue, song) => sendMessage(`> Started playing -> ` + songToString(song)))
     .on('clientDisconnect', (queue) => console.log(`I was kicked from the Voice Channel, queue ended.`))
     .on('clientUndeafen', (queue) => console.log(`I got undefeanded.`))
-    .on('error', (error, queue) => console.log(`[ERROR]: ${error} in ${queue.guild.name}`));
+    .on('error', (error, queue) => sendMessage(`[ERROR]: ${error} in ${queue.guild.name}`));
     
 const settings_prefix = "!";
+
+function getBestChannel(message: Discord.OmitPartialGroupDMChannel<Discord.Message<boolean>>){
+    return message.guild?.channels.cache.filter(channel => channel.isVoiceBased() && channel.members.size > 0).first();
+}
 
 client.on("ready", () => console.log("Illusi is Ready 🎶"));
 client.on('messageCreate', async (message) => {
     try {
+        if (message.author.bot && message.webhookId === null) return;
+
         const args = message.content.slice(settings_prefix.length).trim().split(/ +/g);
         const command = args.shift()!;
         const guild_queue = client.player.get_queue(message.guild!.id)!;
@@ -65,19 +83,59 @@ client.on('messageCreate', async (message) => {
             const play_opts: Parameters<Queue<any>['play']>[1] =  {'type': command === 'play' ? "YouTube" : command === 'lafou' ? "SoundCloud" : "YouTube Music"};
             const has_queue = client.player.has_queue(message.guild!.id);
             const queue = has_queue ? client.player.get_queue(message.guild!.id)! : client.player.create_queue(message.guild!.id);
-            if(!has_queue) await queue.join(message.member!.voice.channel!).catch(err => console.log("[ERROR]: " + err));
+            if(!has_queue) await queue.join(message.member?.voice.channel ?? getBestChannel(message)!).catch(err => sendMessage("[ERROR]: " + err));
             if(command === 'local'){
                 for(const song_index_str of args.join(' ').split(' && ')){
                     try {
                         const song_index = parseInt(song_index_str) - 1;
-                        const song = await queue.play(song_index, play_opts).catch(err => console.log(err));
-                    } catch (error) {}
+                        const song = await queue.play(song_index).catch(err => sendMessage(err));
+                    } catch (error) {
+                        sendMessage("[ERROR]: " + error);
+                    }
                 }
                 return;
             }
             for(const song_item of args.join(' ').split(' && ')){
-                const song = await queue.play(song_item, play_opts).catch(err => console.log(err));
+                const song = await queue.play(song_item, play_opts).catch(err => sendMessage(err));
             }
+        }
+
+        if (command === 'illusno') {
+            const arg = play_track_discord_recieve(args.join(' '));
+            const play_opts: Parameters<Queue<any>['play']>[1] = {};
+            const has_queue = client.player.has_queue(message.guild!.id);
+            const queue = has_queue ? client.player.get_queue(message.guild!.id)! : client.player.create_queue(message.guild!.id);
+            if(!has_queue) await queue.join(message.member?.voice.channel ?? getBestChannel(message)!).catch(err => sendMessage("[ERROR]: " + err));
+            const song = await queue.play(arg, play_opts).catch(err => sendMessage(err));
+        }
+
+        if (command === 'playlist') {
+            const has_queue = client.player.has_queue(message.guild!.id);
+            const queue = has_queue ? client.player.get_queue(message.guild!.id)! : client.player.create_queue(message.guild!.id);
+            if(!has_queue) await queue.join(message.member?.voice.channel! ?? getBestChannel(message)!).catch(err => sendMessage("[ERROR]: " + err));
+            const playlist: MusicServicePlaylist = await Illusive.music_service.get('YouTube')!.get_full_playlist(args.join('').trim()).catch(err => {
+                sendMessage("[ERROR]: " + JSON.stringify(err));
+                return {tracks: []} as any;
+            });
+            if("error" in playlist){
+                sendMessage("[ERROR]: " + playlist.error);
+            }
+            disable_messages = true;
+            for(const track of playlist.tracks.map(track => {
+                return new Song({
+                    name: track.title,
+                    thumbnail: "",
+                    url: track.youtube_id!,
+                    type: "YouTube",
+                    author: track.artists[0].name,
+                    duration: Utils.ms_to_time(track.duration * 1000),
+                    isLive: false
+                }, queue, <any>{});
+            })){
+                const song = await queue.play(track).catch(err => console.log(err));
+            }
+            disable_messages = false;
+            sendMessage(`Added \`${playlist.tracks.length}\` Songs`);
         }
     
         // if (command === 'playlist') {
@@ -95,10 +153,13 @@ client.on('messageCreate', async (message) => {
         if (command === 'clearQueue') { guild_queue?.clearQueue(); }
         if (command === 'shuffle') { guild_queue?.shuffle(); }
         if (command === 'queue') { 
-            for(let i = 0; i < guild_queue.songs.length; i++){
+            let str = '';
+            for(let i = 0; i < Math.min(20, guild_queue.songs.length); i++){
                 const song = guild_queue.songs[i];
-                sendMessage(`> Queued (${i + 1}) -> ` + songToString(song)); 
+                str += `> Queued (${i + 1}) -> ` + songToString(song) + '\n';
             }
+            if(Math.min(20, guild_queue.songs.length) !== guild_queue.songs.length) str += `... +${guild_queue.songs.length - 20} Songs\n`;
+            sendMessage(str);
         }
         if (command === 'media') {
             let str = '';
@@ -106,7 +167,7 @@ client.on('messageCreate', async (message) => {
                 const track = MEDIA[i];
                 str += `> Media (${i + 1}) -> ` + trackToString(track) + '\n';
             }
-            sendMessage(str); 
+            sendMessage(str);
         }
         if (command === 'getVolume') { console.log(guild_queue.volume); }
         if (command === 'nowPlaying') { console.log(`Now playing: ${guild_queue.nowPlaying}`); }
@@ -115,7 +176,7 @@ client.on('messageCreate', async (message) => {
         if (command === 'remove') { guild_queue?.remove(parseInt(args[0]) - 1); }
         if (command === 'createProgressBar') { const ProgressBar = guild_queue.createProgressBar({}); console.log(ProgressBar.prettier); }
     } catch (error) {
-        console.log("[ERROR]: " + error);
+        sendMessage("[ERROR]: " + error);
     }
 })
 

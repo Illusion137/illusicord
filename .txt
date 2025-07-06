@@ -1,0 +1,8 @@
+https://discord.com/api/webhooks/1389077881040142408/pEbW7TSpi7TY5LrFEbb5iSxO0DZcj1GAMCOUTj2yQqnbCogz-NkZQf0BVLIS8cQXb-H-
+
+https://discord.com/api/v10/webhooks/1389077881040142408/pEbW7TSpi7TY5LrFEbb5iSxO0DZcj1GAMCOUTj2yQqnbCogz-NkZQf0BVLIS8cQXb-H-
+
+https://discord.com/api/v10/webhooks/1389077881040142408/pEbW7TSpi7TY5LrFEbb5iSxO0DZcj1GAMCOUTj2yQqnbCogz-NkZQf0BVLIS8cQXb-H-?wait=true
+
+payload
+{"content":"!play lelo 2hollis","embeds":null,"attachments":[]}
